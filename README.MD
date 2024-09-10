@@ -3,7 +3,7 @@ Create an Arduino Uno powered IR gun to replace the light gun used in the Area 5
 
 **WARNING: This is in active development and may not be in a working state. When I am able to use it no matter how terribly I will do a release.**
 
-##Hardware
+## Hardware
 
 - Arduino Uno
 
