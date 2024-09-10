@@ -14,3 +14,8 @@ Option 2: Build your own gun.
 
 - Gun with trigger
 - DFRobot IR Positioning Camera
+
+## How to build
+
+## How it works
+
