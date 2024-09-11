@@ -239,33 +239,26 @@ void IRPosition()
         }
 
         float topM = calculateSlope(coords[topLeft][0],coords[topLeft][1],coords[topRight][0],coords[topRight][1]);
-        float cx = 512;
-        float cy = 512;
 
         if (coords[topLeft][0] >= 1023 || coords[bottomRight][0] >= 1023 || coords[bottomLeft][0] >= 1023 || coords[topRight][0] >= 1023) {
             y = -262;
             x = -262;
         } else {
-            // Define the point around which to rotate
-            float centerX = 512;
-            float centerY = 512;
-
             // Align the rectangle
-            //alignRectangle(coords, centerX, centerY);
             for (int i = 0; i < 4; i++) {
                 float px = coords[i][0];
                 float py = coords[i][1];
                 float s = sin(atan(-topM));
                 float c = cos(atan(-topM));
 
-                px -= cx;
-                py -= cy;
+                px -= cameraCenter;
+                py -= cameraCenter;
 
                 float xnew = px * c - py * s;
                 float ynew = px * s + py * c;
 
-                coords[i][0] = xnew + cx;
-                coords[i][1] = ynew + cy;
+                coords[i][0] = xnew + cameraCenter;
+                coords[i][1] = ynew + cameraCenter;
             }
 
             if (coords[topLeft][0] < 1023 && coords[topRight][0] < 1023) {
