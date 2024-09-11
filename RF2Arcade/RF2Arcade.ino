@@ -15,6 +15,7 @@
 #define topRight 1
 #define bottomLeft 2
 #define bottomRight 3
+#define PI 3.14159265358979323846
 
 int state = DEFAULT;
 
@@ -31,11 +32,9 @@ protected:
 };
 
 #include "DFRobotIRPosition.h"
-
 DFRobotIRPosition myDFRobotIRPosition;
 
-int positionX[4];  ///< Store the X position
-int positionY[4];  ///< Store the Y position
+float coords[4][2];
 double rotX[4];    ///< Store the X position
 double rotY[4];    ///< Store the Y position
 int cameraCenter = 512;
@@ -158,6 +157,60 @@ void test()
         x++;
     }
 }
+// Function to calculate the slope between two points
+float calculateSlope(float x1, float y1, float x2, float y2) {
+    if (x2 == x1) return NAN;  // Vertical line
+    return (y2 - y1) / (x2 - x1);
+}
+
+// Function to calculate the angle between two points relative to the horizontal
+float calculateAngle(float x1, float y1, float x2, float y2) {
+    return atan2(y2 - y1, x2 - x1);
+}
+
+// Function to rotate a point around a specific point (px, py) by an angle
+void rotatePoint(float &x, float &y, float angle, float px, float py) {
+    // Translate point to origin
+    float xTranslated = x - px;
+    float yTranslated = y - py;
+
+    // Perform the rotation
+    float xNew = xTranslated * cos(angle) - yTranslated * sin(angle);
+    float yNew = xTranslated * sin(angle) + yTranslated * cos(angle);
+
+    // Translate point back
+    x = xNew + px;
+    y = yNew + py;
+}
+
+// Function to ensure the long sides of the rectangle are horizontal
+void alignRectangle(float coords[4][2], float px, float py) {
+    // Calculate lengths of sides
+    float lengths[4];
+    for (int i = 0; i < 4; i++) {
+        int next = (i + 1) % 4;
+        lengths[i] = sqrt(pow(coords[next][0] - coords[i][0], 2) + pow(coords[next][1] - coords[i][1], 2));
+    }
+
+    // Determine the angle required to align the longest side horizontally
+    float longestSideAngle = 0;
+    float longestLength = lengths[0];
+    for (int i = 1; i < 4; i++) {
+        int next = (i + 1) % 4;
+        if (lengths[i] > longestLength) {
+            longestLength = lengths[i];
+            longestSideAngle = calculateAngle(coords[i][0], coords[i][1], coords[next][0], coords[next][1]);
+        }
+    }
+
+    // Calculate the rotation angle to align the longest side horizontally
+    float rotationAngle = -longestSideAngle;
+
+    // Rotate all points around (px, py)
+    for (int i = 0; i < 4; i++) {
+        rotatePoint(coords[i][0], coords[i][1], rotationAngle, px, py);
+    }
+}
 
 void IRPosition()
 {
@@ -167,39 +220,41 @@ void IRPosition()
         for (int i = 0; i < 4; i++) {
             int RFx = myDFRobotIRPosition.readX(i);
             int RFy = myDFRobotIRPosition.readY(i);
-
-            if (RFx >= 1023 || RFy >= 1023) {
-                positionX[topLeft] = 0;
-            }
-
             int xQuadrant = (RFx > 512) ? 1 : -1;
             int yQuadrant = (RFy > 512) ? 1 : -1;
 
             if (xQuadrant == -1 && yQuadrant == 1) {
-                positionX[topLeft] = RFx;
-                positionY[topLeft] = RFy;
+                coords[topLeft][0] = RFx;
+                coords[topLeft][1] = RFy;
             } else if (xQuadrant == 1 && yQuadrant == 1) {
-                positionX[topRight] = RFx;
-                positionY[topRight] = RFy;
+                coords[topRight][0] = RFx;
+                coords[topRight][1] = RFy;
             } else if (xQuadrant == -1 && yQuadrant == -1) {
-                positionX[bottomLeft] = RFx;
-                positionY[bottomLeft] = RFy;
+                coords[bottomLeft][0] = RFx;
+                coords[bottomLeft][1] = RFy;
             } else if (xQuadrant == 1 && yQuadrant == -1) {
-                positionX[bottomRight] = RFx;
-                positionY[bottomRight] = RFy;
+                coords[bottomRight][0] = RFx;
+                coords[bottomRight][1] = RFy;
             }
         }
 
-        float topM = float(positionY[topRight] - positionY[topLeft]) / (positionX[topRight] - positionX[topLeft]);
+        float topM = calculateSlope(coords[topLeft][0],coords[topLeft][1],coords[topRight][0],coords[topRight][1]);
         float cx = 512;
         float cy = 512;
 
-        if (positionX[topLeft] >= 1023 || positionX[bottomRight] >= 1023 || positionX[bottomLeft] >= 1023 || positionX[topRight] >= 1023) {
+        if (coords[topLeft][0] >= 1023 || coords[bottomRight][0] >= 1023 || coords[bottomLeft][0] >= 1023 || coords[topRight][0] >= 1023) {
             y = -262;
+            x = -262;
         } else {
+            // Define the point around which to rotate
+            float centerX = 512;
+            float centerY = 512;
+
+            // Align the rectangle
+            //alignRectangle(coords, centerX, centerY);
             for (int i = 0; i < 4; i++) {
-                float px = positionX[i];
-                float py = positionY[i];
+                float px = coords[i][0];
+                float py = coords[i][1];
                 float s = sin(atan(-topM));
                 float c = cos(atan(-topM));
 
@@ -209,19 +264,20 @@ void IRPosition()
                 float xnew = px * c - py * s;
                 float ynew = px * s + py * c;
 
-                positionX[i] = xnew + cx;
-                positionY[i] = ynew + cy;
+                coords[i][0] = xnew + cx;
+                coords[i][1] = ynew + cy;
             }
 
-            if (positionX[topLeft] < 1023 && positionX[topRight] < 1023) {
-                xPerc = float(cameraCenter - positionX[topLeft]) / (positionX[topRight] - positionX[topLeft]);
+            if (coords[topLeft][0] < 1023 && coords[topRight][0] < 1023) {
+                xPerc = float(cameraCenter - coords[topLeft][0]) / (coords[topRight][0] - coords[topLeft][0]);
             }
             x = maxX * (1 - xPerc);
 
-            if (positionX[topLeft] < 1023 && positionX[bottomLeft] < 1023) {
-                yPerc = float(positionY[topLeft] - cameraCenter) / (positionY[topLeft] - positionY[bottomLeft]);
+            if (coords[topLeft][0] < 1023 && coords[bottomLeft][0] < 1023) {
+                yPerc = float(coords[topLeft][1] - cameraCenter) / (coords[topLeft][1] - coords[bottomLeft][1])+0.10;
             }
             y = maxY * (1 - yPerc);
+            printResult(xPerc,yPerc);
         }
     } else {
         Serial.println("Device not available!");
@@ -261,9 +317,9 @@ void printResult(float xPerc, float yPerc)
 {
     Serial.print("IR Positions:\t");
     for (int i = 0; i < 4; i++) {
-        Serial.print(positionX[i]);
+        Serial.print(coords[i][0]);
         Serial.print("\t,");
-        Serial.print(positionY[i]);
+        Serial.print(coords[i][1]);
         Serial.print(";\t");
     }
     Serial.print("Rotated:\t");
@@ -274,9 +330,9 @@ void printResult(float xPerc, float yPerc)
         Serial.print(";\t");
     }
     Serial.print("Resolution: ");
-    Serial.print(positionX[1] - positionX[0]);
+    Serial.print(coords[1][0] - coords[0][0]);
     Serial.print(",");
-    Serial.print(positionY[0] - positionY[2]);
+    Serial.print(coords[0][1] - coords[2][1]);
     Serial.print("\tPerc:");
     Serial.print(xPerc);
     Serial.print(",");
