@@ -36,6 +36,8 @@ DFRobotIRPosition myDFRobotIRPosition;
 
 int positionX[4];     ///< Store the X position
 int positionY[4];     ///< Store the Y position
+double rotX[4];     ///< Store the X position
+double rotY[4];     ///< Store the Y position
 int cameraCenter = 512;
 float xPerc = 0;
 float yPerc = 0;
@@ -48,6 +50,7 @@ const int digitalPin = 7;  // Analog output pin that the LED is attached to
 const int firePin = 6;  // Analog output pin that the LED is attached to
 int counter = 0;
 
+const byte tempTrig = 4;
 const byte vSyncPin = 3;
 const byte hSyncPin = 2;
 
@@ -139,6 +142,7 @@ void setup()
     if (Usb.Init() == -1);
     delay( 200 );
     HidMouse.SetReportParser(0, &Prs);
+    pinMode(tempTrig, INPUT_PULLUP);
 }
 
 void vSync(){
@@ -226,21 +230,34 @@ void IRPosition(){
     }
     //printResult(0,0);
         //Get slope between two top corners
-        double topM=(positionY[topRight] - positionY[topLeft]) / (positionX[topRight] - positionX[topLeft]);
+        float topM= float (positionY[topRight] - positionY[topLeft]) / (positionX[topRight] - positionX[topLeft]);
         
         //rotation correction. Assuming top of rectable should have a slope of 0.
-        //for (int i=0; i<4; i++) {
-        //  double angle = atan(-topM); //convert slope to radians and reverse to get to 0.
-        //   //Rotate clockwise, angle in radians
-        //  int xPoint = round((cos(angle) * (positionX[i] - cameraCenter)) -
-        //                    (sin(angle) * (positionY[i] - cameraCenter)) +
-        //                    cameraCenter);
-        //  int yPoint = round((sin(angle) * (positionX[i] - cameraCenter)) +
-        //                    (cos(angle) * (positionY[i] - cameraCenter)) +
-        //                    cameraCenter);
-        //  positionX[i]=xPoint;
-        //  positionY[i]=yPoint;
-        //}
+        float cx = 512;
+        float cy = 512;
+
+        if(positionX[topLeft]>=1023 or positionX[bottomRight]>=1023 or positionX[bottomLeft]>=1023 or positionX[topRight]>=1023){
+          y = -262;
+        }else{
+
+        for (int i=0; i<4; i++) {
+            float px = positionX[i];
+            float py = positionY[i];
+            float s = sin(atan(-topM));
+            float c = cos(atan(-topM));
+
+            // translate point back to origin:
+            px -= cx;
+            py -= cy;
+
+            // rotate point
+            float xnew = px * c - py * s;
+            float ynew = px * s + py * c;
+
+            // translate point back:
+          positionX[i]=xnew + cx;
+          positionY[i]=ynew + cy;
+        }
         //calculate percentage from left of camera.
         if(positionX[topLeft]<1023 and positionX[topRight]<1023){
           xPerc = (float)(cameraCenter-positionX[topLeft])/(positionX[topRight]-positionX[topLeft]);
@@ -253,7 +270,9 @@ void IRPosition(){
         }
         //Apply percentage to new resolution for x.
         y = maxY*(1-yPerc); 
-        printResult(xPerc,yPerc);
+        }
+       
+
 
       
   }
@@ -263,6 +282,9 @@ void IRPosition(){
   
 
 }
+
+int buttonState = 0;        // current state of the button
+int lastButtonState = 0;    // previous state of the button
 
 void loop()
 {
@@ -277,8 +299,25 @@ void loop()
         break;
     default:
         IRPosition();
+        buttonState = digitalRead(tempTrig);
+        // compare the buttonState to its previous state
+        if (buttonState != lastButtonState) {
+          // if the state has changed, increment the counter
+          if (buttonState == HIGH) {
+            // if the current state is HIGH then the button went from off to on:
+          
+          } else {
+            // if the current state is LOW then the button went from on to off:
+             pinMode(firePin,OUTPUT);
+              digitalWrite(firePin, LOW);
+              delay(17);
+              pinMode(firePin,INPUT);
+          }
+        }
+        // save the current state as the last state, for next time through the loop
+        lastButtonState = buttonState;
+    
     }
-
 }
 
 void printResult(float xPerc,float yPerc)
@@ -290,6 +329,14 @@ void printResult(float xPerc,float yPerc)
         Serial.print("\t,");
         
         Serial.print(positionY[i]);
+        Serial.print(";\t");
+      }
+      Serial.print("Rotated:\t");
+      for (int i=0; i<4; i++) {
+        Serial.print(rotX[i]);
+        Serial.print("\t,");
+        
+        Serial.print(rotY[i]);
         Serial.print(";\t");
       }
       Serial.print("Resolution: ");
