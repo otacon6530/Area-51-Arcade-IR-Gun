@@ -97,17 +97,6 @@ void vSync(){
   counter = 225;
 }
 
-void hSync(){
-    counter++;
-    if(counter==coords.y){ //19 to 239
-      delayMicroseconds(coords.x); //4 to 47 range
-      pinModeFast(digitalPin,OUTPUT);
-      pinModeFast(digitalPin,INPUT);
-    }
-    if(counter>=262){
-      counter=0;
-    }
-}
 void hSync() {
     counter++;
 
