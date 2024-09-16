@@ -98,15 +98,15 @@ void vSync(){
 }
 
 void hSync() {
-    counter++;
-
     // If counter matches coords.y (between 19 and 239)
     if (counter == coords.y) {
         delayMicroseconds(coords.x); // Delay between 4 and 47 microseconds
         pinModeFast(digitalPin, OUTPUT);
         pinModeFast(digitalPin, INPUT);
+        PORTB |= (1 << digitalPin);  // Set pin to HIGH (OUTPUT mode equivalent)
+        PORTB &= ~(1 << digitalPin); // Set pin to LOW (INPUT mode equivalent)
     }
-    counter = (counter >= 262) ? 0 : counter;
+    counter = (counter + 1) % MAX_COUNT;
 }
 
 inline void test(){
