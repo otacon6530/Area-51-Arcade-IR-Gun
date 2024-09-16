@@ -108,9 +108,8 @@ void hSync() {
 }
 
 inline void test(){
-  cycleCounter++;
-  if(cycleCounter >= 20000) {
-    cycleCounter = 0;
+  cycleCounter = (cycleCounter + 1) % 10000;
+  if(cycleCounter==1) {
     coords.x++;
     if(coords.x >= 48) {
       coords.x = 0;
@@ -125,6 +124,6 @@ inline void test(){
 void loop()
 {
   Usb.Task();
-  //test();
+  test();
 }
 
