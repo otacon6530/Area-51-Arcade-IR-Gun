@@ -9,8 +9,10 @@ struct Coordinates {
 };
 
 Coordinates coords;
-const int digitalPin = 7;  // Analog output pin that the LED is attached to
+const int aimPin = 7;  // Analog output pin that the LED is attached to
 const int firePin = 6;  // Analog output pin that the LED is attached to
+const byte vSyncPin = 3;
+const byte hSyncPin = 2;
 int counter = 0;
 int cycleCounter = 0;
 
@@ -18,9 +20,6 @@ const int MAX_Y = 262;
 const int MIN_Y = 0;
 const int MAX_X = 49;
 const int MIN_X = 3;
-
-const byte vSyncPin = 3;
-const byte hSyncPin = 2;
 
 class MouseRptParser : public MouseReportParser
 {
@@ -101,8 +100,8 @@ void hSync() {
     // If counter matches coords.y (between 19 and 239)
     if (counter == coords.y) {
         delayMicroseconds(coords.x); // Delay between 4 and 47 microseconds
-        pinModeFast(digitalPin, OUTPUT);
-        pinModeFast(digitalPin, INPUT);
+        pinModeFast(aimPin, OUTPUT);
+        pinModeFast(aimPin, INPUT);
     }
     counter = (counter + 1) % MAX_Y;
 }
