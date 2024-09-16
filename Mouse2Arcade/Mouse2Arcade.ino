@@ -14,7 +14,7 @@ const int firePin = 6;  // Analog output pin that the LED is attached to
 int counter = 0;
 int cycleCounter = 0;
 
-const int MAX_Y = 263;
+const int MAX_Y = 263; 
 const int MIN_Y = 0;
 const int MAX_X = 49;
 const int MIN_X = 3;
@@ -109,12 +109,9 @@ void hSync(){
     }
 }
 
- void test(){
-  //Serial.println("tst");
+inline void test(){
   cycleCounter++;
-  delay(200);
   if(cycleCounter >= 20000) {
-    Serial.println("test");
     cycleCounter = 0;
     coords.x++;
     if(coords.x >= 48) {
