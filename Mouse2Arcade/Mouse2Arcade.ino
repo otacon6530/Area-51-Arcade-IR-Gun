@@ -14,7 +14,7 @@ const int firePin = 6;  // Analog output pin that the LED is attached to
 int counter = 0;
 int cycleCounter = 0;
 
-const int MAX_Y = 263; 
+const int MAX_Y = 262; 
 const int MIN_Y = 0;
 const int MAX_X = 49;
 const int MIN_X = 3;
@@ -103,10 +103,8 @@ void hSync() {
         delayMicroseconds(coords.x); // Delay between 4 and 47 microseconds
         pinModeFast(digitalPin, OUTPUT);
         pinModeFast(digitalPin, INPUT);
-        PORTB |= (1 << digitalPin);  // Set pin to HIGH (OUTPUT mode equivalent)
-        PORTB &= ~(1 << digitalPin); // Set pin to LOW (INPUT mode equivalent)
     }
-    counter = (counter + 1) % MAX_COUNT;
+    counter = (counter + 1) % MAX_Y;
 }
 
 inline void test(){
