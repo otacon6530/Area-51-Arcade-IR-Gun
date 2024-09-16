@@ -1,6 +1,5 @@
 #include <hidboot.h>
 #include <digitalWriteFast.h>
-#include <TimerOne.h>
 
 //Cache locality attempt
 struct Coordinates {
