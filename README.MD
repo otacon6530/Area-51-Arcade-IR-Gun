@@ -23,6 +23,8 @@ I am reading the vertical sync and horizontal sync video data to recognize what 
 - Add turbo fire option.
 
 ## Program flow
+
+<pre>
 +---------------------------------------------------+
 |                     Start                        |
 +---------------------------------------------------+
@@ -82,4 +84,5 @@ I am reading the vertical sync and horizontal sync video data to recognize what 
 +-------------------------------+
 | Repeat the loop                |
 +-------------------------------+
+</pre>
 
