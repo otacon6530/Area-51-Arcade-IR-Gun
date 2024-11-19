@@ -24,11 +24,14 @@ float dst[4][2] = {{0, -100}, {100, -100}, {0, 0}, {100, 0}};
 float matrix[3][3] = {0};         
 
 void setup() {
+
+    Serial.begin(9600); 
+
+    //Setup IR Camera
     Wire.setSDA(16);
     Wire.setSCL(17);
     Wire1.begin();
-    myDFRobotIRPosition.begin();       // initialize the object in setup()
-    Serial.begin(115200); 
+    myDFRobotIRPosition.begin();
 
 }
 
