@@ -22,16 +22,20 @@ I am reading the vertical sync and horizontal sync video data to recognize what 
               V
 +-------------------------------+
 | Initialize libraries:          |
-| Wire, DFRobotIRPosition, etc.  |
+| - Wire                        |
+| - DFRobotIRPosition           |
+| - BTstackLib                  |
 +-------------------------------+
               |
               V
 +-------------------------------+
 | Setup:                        |
-| - Set SDA and SCL pins         |
-| - Start communication with     |
-|   Wire1 and DFRobotIRPosition  |
-| - Begin Serial communication   |
+| - Configure SDA and SCL pins  |
+| - Start communication with    |
+|   Wire1 and IR camera         |
+| - Initialize Serial (9600)    |
+| - Set up BTstack and GATT     |
+| - Start Bluetooth advertising |
 +-------------------------------+
               |
               V
@@ -41,38 +45,53 @@ I am reading the vertical sync and horizontal sync video data to recognize what 
               |
               V
 +-------------------------------+
-| Call setPosition() to update   |
-| coordinates from the sensor    |
-| - Check if posCounter == 4     |
-|   (4 positions received)       |
+| Check Bluetooth status:       |
+| - If disconnected, continue   |
+| - If connected:               |
+|   - Call triggerCheck()       |
+|   - Call setPosition()        |
 +-------------------------------+
               |
               V
 +-------------------------------+
-| Calculate perspective matrix   |
-| using calculatePerspectiveTransform()             |
-| and Gaussian Elimination                            |
+| In setPosition():             |
+| - Request and read IR LED     |
+|   positions                   |
+| - Assign quadrant coordinates |
+|   to coords[] array           |
+| - Update posCounter           |
 +-------------------------------+
               |
               V
 +-------------------------------+
-| Apply the perspective transform|
-| to all four points and the     |
-| defaultCameraCoord             |
-| using applyPerspectiveTransform() |
+| If posCounter == 4:           |
+| - Calculate perspective matrix|
+|   with calculatePerspective   |
+|   Transform() and             |
+|   gaussianElimination()       |
 +-------------------------------+
               |
               V
 +-------------------------------+
-| Debug the results:             |
-| - Print IR sensor positions    |
-| - Print calculated coordinates |
-| - Print transformed points     |
+| Apply perspective transform   |
+| - Transform IR points         |
+| - Transform default camera    |
+|   coordinate                  |
+| - Update xPos and yPos        |
 +-------------------------------+
               |
               V
 +-------------------------------+
-| Repeat the loop                |
+| Debug:                        |
+| - Print posCounter            |
+| - Print coords and tCoords    |
+| - Print cameraCoord           |
 +-------------------------------+
+              |
+              V
++-------------------------------+
+| Repeat the loop               |
++-------------------------------+
+
 </pre>
 
