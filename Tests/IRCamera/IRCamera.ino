@@ -7,7 +7,6 @@
 #define lowerRight 1
 
 DFRobotIRPosition myDFRobotIRPosition;         // declare a IRCam object
-
 int positionX[4];               // RAW Sensor Values
 int positionY[4];     
 struct coord {
@@ -19,7 +18,6 @@ coord tCoords[4];
 coord defaultCameraCoord = {512,384};
 coord cameraCoord = {};
 int posCounter;
-
 float dst[4][2] = {{0, -100}, {100, -100}, {0, 0}, {100, 0}};
 float matrix[3][3] = {0};         
 
