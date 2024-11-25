@@ -53,13 +53,25 @@ void setup(void) {
   BTstack.setBLEDeviceConnectedCallback(deviceConnectedCallback);
   BTstack.setBLEDeviceDisconnectedCallback(deviceDisconnectedCallback);
   BTstack.setGATTCharacteristicRead(gattReadCallback);
+  BTstack.setGATTCharacteristicWrite(gattWriteCallback);
+  BTstack.setGATTCharacteristicWrittenCallback(gattWrittenCallback);
+  BTstack.setGATTCharacteristicNotificationCallback(gattNotificationCallback);
+  BTstack.setGATTCharacteristicSubscribedCallback(gattSubscribedCallback);
+  BTstack.setGATTCharacteristicDiscoveredCallback(gattDiscoveredCallback);
+  BTstack.setGATTCharacteristicIndicationCallback(gattIndicationCallback);
+  BTstack.setGATTServiceDiscoveredCallback(gattServiceCallback);
+  
+
+  //BTstack.setGATTDoneCallback(cb);
   
   // setup GATT Database
   BTstack.addGATTService(new UUID("B8E06067-62AD-41BA-9231-206AE80AB551"));
-  BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_READ, 3); //value_handle=3
-  BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fce0"), ATT_PROPERTY_READ, 5); //value_handle=5
-  BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcee"), ATT_PROPERTY_READ, 7); //value_handle=7
+  BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_READ | ATT_PROPERTY_NOTIFY, 3); //value_handle=3
+  BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fce0"), ATT_PROPERTY_READ | ATT_PROPERTY_NOTIFY, 5); //value_handle=5
+  BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcee"), ATT_PROPERTY_READ | ATT_PROPERTY_NOTIFY, 7); //value_handle=7
+  bd_addr_t addr= {'0','0','0','0','0','1'};
   
+  BTstack.setPublicBdAddr(addr);
   // startup Bluetooth and activate advertisements
   BTstack.setup();
   BTstack.startAdvertising();
@@ -69,6 +81,7 @@ void setup(void) {
   Wire.setSCL(17);
   Wire1.begin();
   myDFRobotIRPosition.begin();
+  
 
 }
 
@@ -77,7 +90,7 @@ void loop(void) {
 
   if(conn == CONNECTED){
     triggerCheck();
-    debug();
+    //ebug();
       calculatePerspectiveTransform(coords, dst, matrix);
 
       // Print the transformation matrix
@@ -98,7 +111,7 @@ void loop(void) {
       yPos = cameraCoord.y;
 
       // Apply the transformation to a point
-      debug();
+      //debug();
   }
 }
 
@@ -110,6 +123,63 @@ void triggerCheck(){
   }
 }
 
+
+void gattWrittenCallback(BLEStatus status,BLEDevice *device) {
+ 
+  Serial.println("gattWritten");
+}
+
+int gattWriteCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
+  (void) size;
+  yPos = buffer[0];
+  Serial.print("gattWriteCallback , value ");
+  Serial.println(buffer[0], HEX);
+  Serial.println(value_handle,HEX);
+  return 0;
+}
+
+//void (*)(BLEStatus, BLEDevice *, BLEService *)
+void gattServiceCallback(BLEStatus status,BLEDevice *device, BLEService * service) {
+
+  Serial.println("Service: ");
+}
+
+//void (*)(BLEDevice *, uint16_t, uint8_t *, uint16_t)
+void gattIndicationCallback(BLEDevice *device, uint16_t value_handle, uint8_t *value, uint16_t length) {
+ (void) device;
+  (void) value_handle;
+  (void) length;
+  Serial.print("Indication: ");
+  Serial.println((const char *)value);
+}
+
+
+void cb(BLEStatus status,BLEDevice * device) {
+  (void) status;
+  Serial.println("Done!");
+}
+
+void gattDiscoveredCallback(BLEStatus status,BLEDevice * device, BLECharacteristic * characteristic) {
+  (void) status;
+  (void) characteristic;
+  Serial.println("Discovered!");
+}
+
+void gattSubscribedCallback(BLEStatus status, BLEDevice * device) {
+  (void) status;
+  Serial.println("Subscribed!");
+}
+
+//void (*)(BLEDevice *, uint16_t, uint8_t *, uint16_t)
+void gattNotificationCallback(BLEDevice *device, uint16_t value_handle, uint8_t *value, uint16_t length) {
+ (void) device;
+  (void) value_handle;
+  (void) length;
+  Serial.print("Notification: ");
+  Serial.println((const char *)value);
+}
+
+
 /*
    @section Device Connected Callback
 
@@ -117,10 +187,13 @@ void triggerCheck(){
 */
 /* LISTING_START(LEPeripheralDeviceConnectedCallback): Device Connected Callback */
 void deviceConnectedCallback(BLEStatus status, BLEDevice *device) {
-  (void) device;
+  
   switch (status) {
     case BLE_STATUS_OK:
       conn = CONNECTED;
+      Serial.println(device->getHandle());
+      
+      Serial.println(device->discoverGATTServices());
       break;
     default:
       break;
@@ -165,8 +238,10 @@ uint16_t gattReadCallback(uint16_t value_handle, uint8_t * buffer, uint16_t buff
       buffer[0] = trigger;
     }else {
       unsigned long test = 0x999b989;
+      Serial.print(buffer[0]);
       buffer[0] = test;
     }
+    Serial.println();
   }
   return 1;
 }
