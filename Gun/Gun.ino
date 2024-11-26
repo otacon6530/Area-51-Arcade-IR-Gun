@@ -64,8 +64,8 @@ characteristic_summary characteristics[] = {
     { UUID("F897177B-AEE8-4767-8ECC-CC694FD5FCEE"), "trigger" }
 };
 
-int yPos;
-int xPos;
+uint8_t yPos;
+uint8_t xPos;
 bool trigger;
 
 // Application state
@@ -132,11 +132,34 @@ void loop(void) {
       triggerCheck();
       xPos = cameraCoord.x;
       yPos = cameraCoord.y;
-      trigger * 1000000+xPos*100000+xPos;
       
       //if(oldYPos!=yPos){
-        
-        myBLEDevice.writeCharacteristic(&characteristics[charyPos].characteristic, (uint8_t*) "Hello!", sizeof((uint8_t*) "Hello!"));
+
+
+  // Original data buffer
+  uint8_t data[3] = {xPos, yPos, trigger};
+  size_t dataSize = sizeof(data);
+
+  // Hex buffer
+  //char hexBuffer[dataSize * 2 + 1]; // Each byte becomes two hex characters, plus null terminator
+
+  // Fill the hex buffer
+  //for (size_t i = 0; i < dataSize; i++) {
+  //  sprintf(&hexBuffer[i * 2], "%02X", data[i]); // Format each byte as two hex characters
+  //}
+  //hexBuffer[dataSize * 2] = '\0'; // Null-terminate the string
+
+
+        // Send the message
+        if (characteristics[charyPos].found) {
+            myBLEDevice.writeCharacteristic(
+                &characteristics[charyPos].characteristic,
+                (uint8_t*) data,
+                dataSize
+            );
+        }
+
+
       //}
 
 

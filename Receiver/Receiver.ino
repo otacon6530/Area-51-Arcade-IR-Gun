@@ -28,6 +28,7 @@
 // BLE Shield Service V2 incl. used Characteristics
 UUID bleShieldServiceV2UUID("B8E06067-62AD-41BA-9231-206AE80AB551");
 
+
 typedef struct characteristic_summary {
   UUID         uuid;
   const char * name;
@@ -53,6 +54,9 @@ BLEDevice  myBLEDevice;
 BLEService myBLEService;
 bool serviceFound;
 bool sendCounter = false;
+int xPos;
+int yPos;
+bool trigger;
 
 int counter = 0;
 char counterString[20];
@@ -172,13 +176,24 @@ void deviceDisconnectedCallback(BLEDevice * device) {
 }
 
 int gattWriteCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
-  (void) size;
-  Serial.print("Received value:");
-  Serial.print((const char *)buffer);
-  //Serial.print(buffer,char);
+  // Temporarily add a null terminator to the buffer
+ 
+  char tempBuffer[size + 1];
+  memcpy(tempBuffer, buffer, size);
+  tempBuffer[size] = '\0'; // Null-terminate the string
+  
+  Serial.print("Received value: ");
+  for (int i = 0; i < size; i++) {
+      Serial.print(buffer[i]);
+      Serial.print(" ");
+  }
   Serial.print(" for handle(");
   Serial.print(value_handle, HEX);
   Serial.println(")");
+  xPos = buffer[0];
+  yPos = buffer[1];
+  trigger = buffer[2];
+  
   return 0;
 }
 
