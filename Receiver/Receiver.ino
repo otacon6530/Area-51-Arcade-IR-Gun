@@ -67,6 +67,12 @@ char counterString[20];
 /* LISTING_START(LECentralSetup): LE Central Setup */
 void setup(void) {
   Serial.begin(9600);
+  
+  BTstack.addGATTService(new UUID("B8E06067-62AD-41BA-9231-206AE80AB551"));
+  uint16_t c1 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_WRITE, 3); //value_handle=3
+  uint16_t c2 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fce0"), ATT_PROPERTY_WRITE, 5); //value_handle=5
+  uint16_t c3 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcee"), ATT_PROPERTY_WRITE, 7); //value_handle=7
+
   BTstack.setBLEAdvertisementCallback(advertisementCallback);
   BTstack.setBLEDeviceConnectedCallback(deviceConnectedCallback);
   BTstack.setBLEDeviceDisconnectedCallback(deviceDisconnectedCallback);
@@ -76,6 +82,8 @@ void setup(void) {
   BTstack.setGATTCharacteristicReadCallback(gattReadCallback);
   BTstack.setGATTCharacteristicWrittenCallback(gattWrittenCallback);
   BTstack.setGATTCharacteristicSubscribedCallback(gattSubscribedCallback);
+  BTstack.setGATTCharacteristicWrite(gattWriteCallback);
+
   BTstack.setup();
   BTstack.bleStartScanning();
 }
@@ -110,7 +118,7 @@ void loop(void) {
 */
 /* LISTING_START(LECentralAdvertisementCallback): Advertisement Callback */
 void advertisementCallback(BLEAdvertisement *bleAdvertisement) {
-  String s = "28:CD:C1:06:8B:5F";
+  String s = "28:CD:C1:06:8B:FC";
   const char* myCharArray = bleAdvertisement->getBdAddr()->getAddressString();
   String myString(myCharArray);
   if (myString==s) {
@@ -162,6 +170,18 @@ void deviceDisconnectedCallback(BLEDevice * device) {
   sendCounter = false;
   BTstack.bleStartScanning();
 }
+
+int gattWriteCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
+  (void) size;
+  Serial.print("Received value:");
+  Serial.print((const char *)buffer);
+  //Serial.print(buffer,char);
+  Serial.print(" for handle(");
+  Serial.print(value_handle, HEX);
+  Serial.println(")");
+  return 0;
+}
+
 /* LISTING_END(LECentralDeviceDisconnectedCallback): Device Disconnected Callback */
 
 /*
@@ -296,6 +316,7 @@ void gattWrittenCallback(BLEStatus status, BLEDevice *device) {
   (void) status;
   (void) device;
   sendCounter = true;
+  Serial.println("written");
 }
 /* LISTING_END(LECentralWrittenCallback): Written Callback */
 
