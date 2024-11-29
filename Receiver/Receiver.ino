@@ -1,10 +1,26 @@
 #include <BTstackLib.h>
 #include <SPI.h>
+#define DEBUG 0  // Change to 0 to disable debug
 
 // Application state
 int xPos;
 int yPos;
 bool trigger;
+const int digitalPin = 7;
+const int firePin = 6;  // Digital output pin for the fire action
+struct {
+
+  int width = 47;
+  int height = 239;
+  int x = 25;
+  int y = 125;
+  int vSyncOffset = 240;
+  int hSyncCounter = 0;
+} screen;
+int lastButtonState;
+const byte tempTrig = 4;
+const byte vSyncPin = 3;
+const byte hSyncPin = 2;
 
 // static btstack_timer_source_t heartbeat;
 
@@ -16,9 +32,9 @@ bool trigger;
 /* LISTING_START(LECentralSetup): LE Central Setup */
 void setup(void) {
   Serial.begin(9600);
-  
+
   BTstack.addGATTService(new UUID("B8E06067-62AD-41BA-9231-206AE80AB551"));
-  uint16_t c1 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_WRITE, 3); //value_handle=3
+  uint16_t c1 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_WRITE, 3);  //value_handle=3
 
   BTstack.setBLEAdvertisementCallback(advertisementCallback);
   BTstack.setBLEDeviceConnectedCallback(deviceConnectedCallback);
@@ -27,7 +43,34 @@ void setup(void) {
 
   BTstack.setup();
   BTstack.bleStartScanning();
+
+  //Interrupt for Vertical and Horizontal sync.
+  pinMode(vSyncPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(vSyncPin), vSync, FALLING);
+  pinMode(hSyncPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(hSyncPin), hSync, RISING);
+
+  pinMode(tempTrig, INPUT_PULLUP);
 }
+void vSync() {
+  screen.hSyncCounter = screen.vSyncOffset;
+}
+
+void hSync() {
+  screen.hSyncCounter++;
+  if (screen.hSyncCounter == screen.y) {
+    delayMicroseconds(screen.x);
+    pinMode(digitalPin, OUTPUT);
+    digitalWrite(digitalPin, LOW);
+    pinMode(digitalPin, INPUT);
+  }
+  if (screen.hSyncCounter >= screen.height) {
+    screen.hSyncCounter = 0;
+  }
+}
+
+
+
 /* LISTING_END(LECentralSetup): LE Central Setup */
 
 /*
@@ -42,6 +85,18 @@ void setup(void) {
 /* LISTING_START(LECentralLoop): Loop */
 void loop(void) {
   BTstack.loop();
+  int buttonState = digitalRead(tempTrig);
+
+  if (buttonState != lastButtonState) {
+    if (buttonState == LOW) {
+      pinMode(firePin, OUTPUT);
+      digitalWrite(firePin, LOW);
+      delay(17);
+      pinMode(firePin, INPUT);
+    }
+  }
+  lastButtonState = buttonState;
+  debug();
 }
 /* LISTING_END(LECentralLoop): Loop */
 
@@ -59,9 +114,9 @@ void loop(void) {
 /* LISTING_START(LECentralAdvertisementCallback): Advertisement Callback */
 void advertisementCallback(BLEAdvertisement *bleAdvertisement) {
   String s = "28:CD:C1:06:8B:FC";
-  const char* myCharArray = bleAdvertisement->getBdAddr()->getAddressString();
+  const char *myCharArray = bleAdvertisement->getBdAddr()->getAddressString();
   String myString(myCharArray);
-  if (myString==s) {
+  if (myString == s) {
     Serial.println("\nBLE ShieldService V2 found!\n");
     BTstack.bleStopScanning();
     BTstack.bleConnect(bleAdvertisement, 10000);  // 10 s
@@ -101,8 +156,8 @@ void deviceConnectedCallback(BLEStatus status, BLEDevice *device) {
    is called. Here, we start scanning for new devices again.
 */
 /* LISTING_START(LECentralDeviceDisconnectedCallback): Device Disconnected Callback */
-void deviceDisconnectedCallback(BLEDevice * device) {
-  (void) device;
+void deviceDisconnectedCallback(BLEDevice *device) {
+  (void)device;
   Serial.println("Disconnected, starting over..");
   BTstack.bleStartScanning();
 }
@@ -110,12 +165,12 @@ void deviceDisconnectedCallback(BLEDevice * device) {
 int gattWriteCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
   char tempBuffer[size + 1];
   memcpy(tempBuffer, buffer, size);
-  tempBuffer[size] = '\0'; // Null-terminate the string
-  
+  tempBuffer[size] = '\0';  // Null-terminate the string
+
   Serial.print("Received value: ");
   for (int i = 0; i < size; i++) {
-      Serial.print(buffer[i]);
-      Serial.print(" ");
+    Serial.print(buffer[i]);
+    Serial.print(" ");
   }
   Serial.print(" for handle(");
   Serial.print(value_handle, HEX);
@@ -123,6 +178,20 @@ int gattWriteCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
   xPos = buffer[0];
   yPos = buffer[1];
   trigger = buffer[2];
-  
+
   return 0;
 }
+#if DEBUG
+void debug() {
+{
+    delay(10);
+    screen.y++;
+    if (screen.x == screen.width) screen.x = 0;
+    if (screen.y >= screen.height) {
+        screen.y = 0;
+        screen.x++;
+    }
+}
+#else
+void debug() {}
+#endif
