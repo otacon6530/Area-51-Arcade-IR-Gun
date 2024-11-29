@@ -53,15 +53,11 @@ typedef struct characteristic_summary {
 
 typedef enum characteristicIDs {
     charyPos = 1,
-    charxPos = 2,
-    chartrigger = 3,
     numCharacteristics  /* last one */
 } characteristicIDs_t;
 
 characteristic_summary characteristics[] = {
-    { UUID("F897177B-AEE8-4767-8ECC-CC694FD5FCEF"), "yPos"       },
-    { UUID("F897177B-AEE8-4767-8ECC-CC694FD5FCE0"), "xPos"       },
-    { UUID("F897177B-AEE8-4767-8ECC-CC694FD5FCEE"), "trigger" }
+    { UUID("F897177B-AEE8-4767-8ECC-CC694FD5FCEF"), "yPos"       }
 };
 
 uint8_t yPos;
@@ -81,17 +77,10 @@ void setup(void) {
 
   Serial.begin(9600);
 
-  // set callbacks
+  // set bluetooth callbacks
   BTstack.setBLEDeviceConnectedCallback(deviceConnectedCallback);
-  BTstack.setGATTCharacteristicRead(gattReadCallback);
-  BTstack.setGATTCharacteristicWrite(gattWriteCallback);
-  BTstack.setBLEDeviceDisconnectedCallback(deviceDisconnectedCallback);
   BTstack.setGATTServiceDiscoveredCallback(gattServiceDiscovered);
   BTstack.setGATTCharacteristicDiscoveredCallback(gattCharacteristicDiscovered);
-  BTstack.setGATTCharacteristicNotificationCallback(gattCharacteristicNotification);
-  BTstack.setGATTCharacteristicReadCallback(gattReadCallback);
-  BTstack.setGATTCharacteristicWrittenCallback(gattWrittenCallback);
-  BTstack.setGATTCharacteristicSubscribedCallback(gattSubscribedCallback);
 
   // startup Bluetooth and activate advertisements
   BTstack.setup();
@@ -108,11 +97,8 @@ void setup(void) {
 void loop(void) {
   BTstack.loop();
   if(conn == CONNECTED){
-    //ebug();
+    debug();
       calculatePerspectiveTransform(coords, dst, matrix);
-
-      // Print the transformation matrix
-      //Serial.println("Transformation Matrix:");
       for (int i = 0; i < 4; i++) {
         float point[2] = {coords[i].x,coords[i].y};
         float transformedPoint[2] = {0};
@@ -125,47 +111,28 @@ void loop(void) {
       applyPerspectiveTransform(matrix, point, transformedPoint);
       cameraCoord.x = transformedPoint[0];
       cameraCoord.y = transformedPoint[1];
+      
       int oldXPos = xPos;
       int oldYPos = yPos;
       int oldTrigger = trigger;
 
+      //Data update
       triggerCheck();
       xPos = cameraCoord.x;
       yPos = cameraCoord.y;
-      
-      //if(oldYPos!=yPos){
 
+      uint8_t data[3] = {xPos, yPos, trigger};
+      size_t dataSize = sizeof(data);
 
-  // Original data buffer
-  uint8_t data[3] = {xPos, yPos, trigger};
-  size_t dataSize = sizeof(data);
-
-  // Hex buffer
-  //char hexBuffer[dataSize * 2 + 1]; // Each byte becomes two hex characters, plus null terminator
-
-  // Fill the hex buffer
-  //for (size_t i = 0; i < dataSize; i++) {
-  //  sprintf(&hexBuffer[i * 2], "%02X", data[i]); // Format each byte as two hex characters
-  //}
-  //hexBuffer[dataSize * 2] = '\0'; // Null-terminate the string
-
-
-        // Send the message
-        if (characteristics[charyPos].found) {
-            myBLEDevice.writeCharacteristic(
-                &characteristics[charyPos].characteristic,
-                (uint8_t*) data,
-                dataSize
-            );
-        }
-
-
-      //}
-
-
-
-      // Apply the transformation to a point
-      //debug();
+      // Send the message
+      if (characteristics[charyPos].found) {
+        myBLEDevice.writeCharacteristic(
+          &characteristics[charyPos].characteristic,
+          (uint8_t*) data,
+          dataSize
+        );
+      }
+      debug();
   }
 }
 
@@ -176,65 +143,6 @@ void triggerCheck(){
     trigger = 0;
   }
 }
-
-/* LISTING_END(LEPeripheralDeviceConnectedCallback): Device Connected Callback */
-
-/*
-   @section Device Disconnected Callback
-
-   @text If the connection to a device breaks, the device disconnected callback
-   is called.
-*/
-/* LISTING_START(LEPeripheralDeviceDisconnectedCallback): Device Disconnected Callback */
-void deviceDisconnectedCallback(BLEDevice * device) {
-  (void) device;
-  Serial.println("Disconnected.");
-}
-/* LISTING_END(LEPeripheralDeviceDisconnectedCallback): Device Disconnected Callback */
-
-/*
-   @section Read Callback
-
-   @text In BTstack, the Read Callback is first called to query the size of the
-   Characteristic Value, before it is called to provide the data.
-   Both times, the size has to be returned. The data is only stored in the provided
-   buffer, if the buffer argeument is not NULL.
-   If more than one dynamic Characteristics is used, the value handle is used
-   to distinguish them.
-*/
-/* LISTING_START(LEPeripheralReadCallback): Read Callback */
-uint16_t gattReadCallback(uint16_t value_handle, uint8_t * buffer, uint16_t buffer_size) {
-  (void) value_handle;
-  (void) buffer_size;
-  if (buffer) {
-    Serial.print("gattReadCallback, value: ");
-    //Serial.println(characteristic_data, HEX);
-    //buffer[0] = characteristic_data;
-  }
-  return 1;
-}
-/* LISTING_END(LEPeripheralDeviceDisconnectedCallback): Read Callback */
-
-/*
-   @section Write Callback
-
-   @text When the remove device writes a Characteristic Value, the Write callback
-   is called. The buffer arguments points to the data of size size/
-   If more than one dynamic Characteristics is used, the value handle is used
-   to distinguish them.
-*/
-/* LISTING_START(LEPeripheralWriteCallback): Write Callback */
-int gattWriteCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
-  (void) value_handle;
-  (void) size;
-  //characteristic_data = buffer[0];
-  Serial.print("gattWriteCallback , value ");
- // Serial.println(characteristic_data, HEX);
-  return 0;
-}
-/* LISTING_END(LEPeripheralWriteCallback): Write Callback */
-
-/* LISTING_END(LECentralAdvertisementCallback): Advertisement Callback */
 
 /*
  * @section Device Connected Callback
@@ -261,8 +169,6 @@ void deviceConnectedCallback(BLEStatus status, BLEDevice *device) {
             break;
     }
 }
-
-/* LISTING_END(LECentralDeviceDisconnectedCallback): Device Disconnected Callback */
 
 /*
  * @section Service Discovered Callback
@@ -297,7 +203,6 @@ void gattServiceDiscovered(BLEStatus status, BLEDevice *device, BLEService *bleS
             break;
     }
 }
-/* LISTING_END(LECentralServiceDiscoveredCallback): Service Discovered Callback */
 
 /*
  * @section Characteristic Discovered Callback
@@ -338,66 +243,6 @@ void gattCharacteristicDiscovered(BLEStatus status, BLEDevice *device, BLECharac
             break;
     }
 }
-/* LISTING_END(LECentralCharacteristicDiscoveredCallback): Characteristic Discovered Callback */
-
-/*
- * @section Subscribed Callback
- *
- * @text After the subcribe operation is complete, we get notified if it was 
- * successful. In this example, we read the Characteristic that contains the 
- * BD ADDR of the other device. This isn't strictly neccessary as we already
- * know the device address from the Advertisement, but it's a common pattern
- * with iOS as the device address is hidden from applications.
- */
-/* LISTING_START(LECentralSubscribedCallback): Subscribed Callback */
-void gattSubscribedCallback(BLEStatus status, BLEDevice * device){
-    //device->readCharacteristic(&characteristics[charBdAddr].characteristic);
-}
-/* LISTING_END(LECentralSubscribedCallback): Subscribed Callback */
-
-/*
- * @section Read Callback
- *
- * @text The Read callback is called with the result from a read operation.
- * Here, we write to the TX Characteristic next.
- */
-/* LISTING_START(LECentralReadCallback): Read Callback */
-void gattReadCallback(BLEStatus status, BLEDevice *device, uint8_t *value, uint16_t length) {
-    Serial.print("Read callback: ");
-    Serial.println((const char *)value);
-    //device->writeCharacteristic(&characteristics[charTX].characteristic, (uint8_t*) "Hello!", 6);
-}
-/* LISTING_END(LECentralReadCallback): Read Callback */
-
-/*
- * @section Written Callback
- *
- * @text After the write operation is complete, the Written Callback is callbed with
- * the result in the status argument. As we're done with the initial setup of the remote
- * device, we set the flag to write the test string as fast as possible.
- */
-/* LISTING_START(LECentralWrittenCallback): Written Callback */
-void gattWrittenCallback(BLEStatus status, BLEDevice *device){
-    sendCounter = true;
-}
-/* LISTING_END(LECentralWrittenCallback): Written Callback */
-
-/*
- * @section Notification Callback
- *
- * @text Notifictions for Characteristic Value Updates are delivered via the 
- * Notification Callback. When more than one Characteristic is subscribed,
- * the value handle can be used to distinguish between them. The 
- * BLECharacteristic.isValueHandle(int handle) allows to test if a value handle
- * belongs to a particular Characteristic.
- */
-/* LISTING_START(LECentralNotificationCallback): Notification Callback */
-void gattCharacteristicNotification(BLEDevice *device, uint16_t value_handle, uint8_t *value, uint16_t length) {
-    Serial.print("Notification: ");
-    Serial.println((const char *)value);
-}
-/* LISTING_END(LECentralNotificationCallback): Notification Callback */
-
 
 /*
    @section Determine IR LED positioning
