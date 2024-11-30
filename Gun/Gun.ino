@@ -14,7 +14,7 @@
 #define upperRight 3
 #define lowerLeft 0
 #define lowerRight 1
-#define DEBUG 1  // Change to 0 to disable debug
+#define DEBUG 0  // Change to 0 to disable debug
 
 // Define pin assignments
 #define Trigger_PIN 2
@@ -92,11 +92,13 @@ void setup(void) {
   Wire.setSCL(17);
   Wire1.begin();
   myDFRobotIRPosition.begin();
+  pinMode(Trigger_PIN,INPUT_PULLUP);
 }
 /* LISTING_END(LEPeripheralSetup): Setup */
 
 void loop(void) {
   BTstack.loop();
+
   if (conn == CONNECTED) {
     debug();
     calculatePerspectiveTransform(coords, dst, matrix);
@@ -125,7 +127,7 @@ void loop(void) {
     uint8_t data[3] = { xPos, yPos, trigger };
     size_t dataSize = sizeof(data);
 
-    if (xPos != oldXPos || yPos != oldYPos || trigger != oldTrigger) {
+    if (xPos != oldXPos || yPos != oldYPos || (trigger != oldTrigger && trigger == 1)) {
       myBLEDevice.writeCharacteristic(
         &characteristics[charyPos].characteristic,
         (uint8_t *)data,
@@ -137,9 +139,9 @@ void loop(void) {
 
 void triggerCheck() {
   if (digitalRead(Trigger_PIN) == HIGH) {
-    trigger = 1;
-  } else {
     trigger = 0;
+  } else {
+    trigger = 1;
   }
 }
 
@@ -158,7 +160,7 @@ void deviceConnectedCallback(BLEStatus status, BLEDevice *device) {
     case BLE_STATUS_OK:
       Serial.println("Device connected!");
       myBLEDevice = *device;
-      counter = 0;
+      conn = CONNECTED;
       myBLEDevice.discoverGATTServices();
       break;
     case BLE_STATUS_CONNECTION_TIMEOUT:
