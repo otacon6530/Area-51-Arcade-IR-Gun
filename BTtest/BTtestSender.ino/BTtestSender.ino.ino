@@ -73,10 +73,10 @@ char counterString[20];
 void setup(void) {
   Serial.begin(9600);
   
-  BTstack.addGATTService(new UUID("B8E06067-62AD-41BA-9231-206AE80AB552"));
-  uint16_t c1 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fce1"), ATT_PROPERTY_WRITE, 3); //value_handle=3
-  uint16_t c2 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fce2"), ATT_PROPERTY_WRITE, 5); //value_handle=5
-  uint16_t c3 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fce3"), ATT_PROPERTY_WRITE, 7); //value_handle=7
+  BTstack.addGATTService(new UUID("B8E06067-62AD-41BA-9231-206AE80AB551"));
+  uint16_t c1 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_WRITE, 3); //value_handle=3
+  uint16_t c2 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fce0"), ATT_PROPERTY_WRITE, 5); //value_handle=5
+  uint16_t c3 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcee"), ATT_PROPERTY_WRITE, 7); //value_handle=7
 
   //Callbacks
   BTstack.setBLEAdvertisementCallback(advertisementCallback);
@@ -93,9 +93,6 @@ void setup(void) {
   BTstack.setGATTCharacteristicWrite(gattWriteCallback);
   BTstack.setGATTCharacteristicRead(gattReadCallback);
         
-
-
-
   BTstack.setup();
   BTstack.startAdvertising();
 }
@@ -134,7 +131,8 @@ void advertisementCallback(BLEAdvertisement *bleAdvertisement) {
   const char* myCharArray = bleAdvertisement->getBdAddr()->getAddressString();
   String myString(myCharArray);
   if (myString==s) {
-    Serial.println("\nBLE ShieldService V2 found!\n");
+    Serial.print("\nBLE ShieldService V2 found:");
+    Serial.println(myString);
     BTstack.bleStopScanning();
     BTstack.bleConnect(bleAdvertisement, 10000);  // 10 s
   }

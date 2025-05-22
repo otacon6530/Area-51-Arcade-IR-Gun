@@ -1,4 +1,4 @@
-/*Sender Test*/
+/*Receiver Test*/
 #include <BTstackLib.h>
 #include <SPI.h>
 
@@ -94,7 +94,7 @@ void setup(void) {
   BTstack.setGATTCharacteristicRead(gattReadCallback);
         
   BTstack.setup();
-  BTstack.startAdvertising();
+  BTstack.bleStartScanning();
 }
 /* LISTING_END(LECentralSetup): LE Central Setup */
 
@@ -131,7 +131,8 @@ void advertisementCallback(BLEAdvertisement *bleAdvertisement) {
   const char* myCharArray = bleAdvertisement->getBdAddr()->getAddressString();
   String myString(myCharArray);
   if (myString==s) {
-    Serial.println("\nBLE ShieldService V2 found!\n");
+    Serial.print("\nBLE ShieldService V2 found:");
+    Serial.println(myString);
     BTstack.bleStopScanning();
     BTstack.bleConnect(bleAdvertisement, 10000);  // 10 s
   }
@@ -201,7 +202,7 @@ int gattWriteCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
   return 0;
 }
 
-int gattReadCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
+uint16_t gattReadCallback(uint16_t value_handle, uint8_t *buffer, uint16_t size) {
   // Temporarily add a null terminator to the buffer
  
   char tempBuffer[size + 1];
