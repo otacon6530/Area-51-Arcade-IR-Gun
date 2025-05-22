@@ -32,16 +32,28 @@ const byte hSyncPin = 2;
 /* LISTING_START(LECentralSetup): LE Central Setup */
 void setup(void) {
   Serial.begin(9600);
-
-  BTstack.addGATTService(new UUID("B8E06067-62AD-41BA-9231-206AE80AB551"));
-  uint16_t c1 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_WRITE, 3);  //value_handle=3
-
+  uint16_t c2 = BTstack.addGATTCharacteristicDynamic(new UUID("f897177b-aee8-4767-8ecc-cc694fd5fcef"), ATT_PROPERTY_WRITE, 3);  //value_handle=3
+  BTstack.enableDebugLogger();
+  BTstack.enablePacketLogger();
+  
+  static const char* MY_SERVICE_UUID_STR = "b48e423a-a7ac-4d81-af24-8c4accdcf550";
+  UUID myServiceUUID(MY_SERVICE_UUID_STR);
+  BTstack.addGATTService(&myServiceUUID);
+  UUID charUUID("61d292f5-e8bd-476a-82d7-d59eb5653241");
+  uint16_t c1 = BTstack.addGATTCharacteristicDynamic(&charUUID, ATT_PROPERTY_WRITE, 3);
   BTstack.setBLEAdvertisementCallback(advertisementCallback);
   BTstack.setBLEDeviceConnectedCallback(deviceConnectedCallback);
   BTstack.setBLEDeviceDisconnectedCallback(deviceDisconnectedCallback);
   BTstack.setGATTCharacteristicWrite(gattWriteCallback);
 
   BTstack.setup();
+  Serial.print("Broadcasting service UUID: ");
+  Serial.println(myServiceUUID.getUuid128String());
+  
+  BTstack.startAdvertising();
+  delay(5000);
+  BTstack.stopAdvertising();
+  delay(5000);
   BTstack.bleStartScanning();
 
   //Interrupt for Vertical and Horizontal sync.
@@ -137,7 +149,9 @@ void advertisementCallback(BLEAdvertisement *bleAdvertisement) {
 void deviceConnectedCallback(BLEStatus status, BLEDevice *device) {
   switch (status) {
     case BLE_STATUS_OK:
-      Serial.println("Device connected!");
+      Serial.print("Device connected: ");
+      Serial.println(device->getHandle());
+      device->discoverGATTServices();
       break;
     case BLE_STATUS_CONNECTION_TIMEOUT:
       Serial.println("Error while Connecting the Peripheral");

@@ -43,7 +43,7 @@ int posCounter;
 float dst[4][2] = { { 0, -100 }, { 100, -100 }, { 0, 0 }, { 100, 0 } };
 float matrix[3][3] = { 0 };
 
-UUID bleShieldServiceV2UUID("B8E06067-62AD-41BA-9231-206AE80AB551");
+UUID bleShieldServiceV2UUID("b48e423a-a7ac-4d81-af24-8c4accdcf550");
 typedef struct characteristic_summary {
   UUID uuid;
   const char *name;
@@ -158,10 +158,11 @@ void triggerCheck() {
 void deviceConnectedCallback(BLEStatus status, BLEDevice *device) {
   switch (status) {
     case BLE_STATUS_OK:
-      Serial.println("Device connected!");
+      Serial.print("Device connected: ");
+      Serial.println(device->getHandle());
       myBLEDevice = *device;
       conn = CONNECTED;
-      myBLEDevice.discoverGATTServices();
+      device->discoverGATTServices();
       break;
     case BLE_STATUS_CONNECTION_TIMEOUT:
       Serial.println("Error while Connecting the Peripheral");
@@ -184,6 +185,8 @@ void deviceConnectedCallback(BLEStatus status, BLEDevice *device) {
  */
 /* LISTING_START(LECentralServiceDiscoveredCallback): Service Discovered Callback */
 void gattServiceDiscovered(BLEStatus status, BLEDevice *device, BLEService *bleService) {
+  Serial.print("Analyzing service: ");
+  Serial.println(bleService->getUUID()->getUuid128String());
   switch (status) {
     case BLE_STATUS_OK:
       if (bleService->matches(&bleShieldServiceV2UUID)) {
